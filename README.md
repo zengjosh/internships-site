@@ -1,15 +1,13 @@
 # internships-site
 
-Frontend for my internship tracker. A Python scraper (separate repo:
-`Automated-List-Of-Summer-2027-and-Fall-2026-Tech-Internships`) runs on my
-laptop / Raspberry Pi every couple of hours, mirrors open roles into Supabase,
+Frontend for my internship tracker. A Python scraper runs on GHA every couple of hours, mirrors open roles into Supabase,
 and pings Discord for target companies. This site reads that Supabase data at
 runtime — data updates never trigger a rebuild.
 
 ## Architecture
 
 ```
-scraper (laptop/Pi, cron) ──► Supabase Postgres ◄── this site (Vercel, ISR 5 min)
+scraper ──► Supabase Postgres ◄── this site (Vercel, ISR 5 min)
                         └──► Discord webhook (tiered companies)
 ```
 

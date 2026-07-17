@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# internships-site
 
-## Getting Started
+Frontend for my internship tracker. A Python scraper (separate repo:
+`Automated-List-Of-Summer-2027-and-Fall-2026-Tech-Internships`) runs on my
+laptop / Raspberry Pi every couple of hours, mirrors open roles into Supabase,
+and pings Discord for target companies. This site reads that Supabase data at
+runtime — data updates never trigger a rebuild.
 
-First, run the development server:
+## Architecture
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+scraper (laptop/Pi, cron) ──► Supabase Postgres ◄── this site (Vercel, ISR 5 min)
+                        └──► Discord webhook (tiered companies)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- `lib/jobs.ts` — fetches open roles with the public anon key (tables are
+  read-only to it via RLS; writes require the scraper's service_role key).
+- `app/page.tsx` — server component, `revalidate = 300`.
+- `components/jobs-table.tsx` — client-side search + cycle/category/tier/F-1 filters.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. In the scraper repo, run `db/schema.sql` in the Supabase SQL editor and set
+   `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` in its `.env`, then run
+   `python run.py update` once — it should print `synced to Postgres   yes`.
+2. Copy `.env.local.example` to `.env.local` and fill in the project URL and
+   **anon** key (Supabase → Project Settings → API).
+3. `npm install && npm run dev` → http://localhost:3000
 
-## Learn More
+## Deploy (Vercel)
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Push this repo to GitHub, import it in Vercel, and add the same two env vars
+(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) in Project →
+Settings → Environment Variables. That's it — new scrape data appears within
+5 minutes of each scraper run, with no redeploys.
